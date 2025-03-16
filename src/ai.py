@@ -10,7 +10,7 @@ llm = AzureChatOpenAI()
 
 
 @tool
-def tool_random_pick_tarot_cards(*args, **kwargs):
+def tool_draw_tarot_cards(number_of_cards: int = 3, with_replacement=False, reversed_allowed=False):
     """
     Randomly pick tarot cards from the deck.
     Args:
@@ -20,10 +20,10 @@ def tool_random_pick_tarot_cards(*args, **kwargs):
     Returns:
         list[str]: List of tarot cards.
     """
-    return str(random_pick_tarot_cards(*kwargs["args"]))
+    return str(random_pick_tarot_cards(number_of_cards, with_replacement, reversed_allowed))
 
 
-tools = [tool_random_pick_tarot_cards]
+tools = [tool_draw_tarot_cards]
 llm_with_tools = llm.bind_tools(tools)
 
 
@@ -43,8 +43,8 @@ def is_conversation_about_subject(messages: list[dict[str, str]]) -> bool:
     if not user_messages:
         return True  # No user messages yet
 
-    # Join the recent messages (using last 3 or all if fewer) to check context
-    recent_messages = user_messages[-3:] if len(user_messages) > 3 else user_messages
+    # Join the recent messages (using last 10 or all if fewer) to check context
+    recent_messages = user_messages[-10:] if len(user_messages) > 3 else user_messages
     conversation_text = "\n".join(recent_messages)
 
     tarot_topics = [
@@ -92,12 +92,22 @@ def complete_chat(messages: list[dict[str, str]] = None) -> dict[str, str]:
             messages,
         )
     )
-    messages.append(SystemMessage("Use tools only if necessary."))
+    messages.insert(
+        0,
+        SystemMessage(
+            "You are a knowledgeable and insightful tarot reader. Your goal is to provide meaningful and accurate tarot "
+            "readings, interpretations, and spiritual guidance to users. Use your expertise to help users understand the "
+            "symbolism and meanings of the tarot cards they draw. Offer thoughtful, compassionate yet firm and truthful "
+            "advice based on the cards and their positions in the spread. Remember to be respectful and considerate in "
+            "your responses, and ensure that your guidance is always related to tarot readings. You will speak mystical "
+            "and draw cards when necessary. Otherwise, you will extend your reading of existing cards to provide more "
+            "context to your answers."
+        ),
+    )
     ai_msg = llm_with_tools.invoke(messages)
-    messages = messages[:-1]
     messages.append(ai_msg)
     for tool_call in ai_msg.tool_calls:
-        selected_tool = {"tool_random_pick_tarot_cards": tool_random_pick_tarot_cards}[tool_call["name"].lower()]
+        selected_tool = {"tool_draw_tarot_cards": tool_draw_tarot_cards}[tool_call["name"].lower()]
         tool_msg = selected_tool.invoke(tool_call)
         messages.append(tool_msg)
     final_result = llm_with_tools.invoke(messages)
