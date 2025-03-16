@@ -1,0 +1,8 @@
+__pycache__
+.idea
+.ruff_cache
+.streamlit
+.venv
+.vscode
+*.db
+src/__pycache__
