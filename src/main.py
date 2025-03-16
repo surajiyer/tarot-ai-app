@@ -1,5 +1,5 @@
 import streamlit as st
 
-
-st.title("Hello, World!")
-st.write("Welcome to my Streamlit app!")
+chat_page = st.Page("chat.py", title="Chat", icon="💬")
+pg = st.navigation([chat_page])
+pg.run()
