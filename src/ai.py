@@ -28,15 +28,6 @@ llm_with_tools = llm.bind_tools(tools)
 
 
 def is_conversation_about_subject(messages: list[dict[str, str]]) -> bool:
-    """
-    Check if the entire conversation is about tarot-related topics.
-
-    Args:
-        messages: List of message dictionaries with 'role' and 'content' keys
-
-    Returns:
-        bool: True if the conversation is on topic, False otherwise
-    """
     # Extract only user messages for analysis
     user_messages = [msg["content"] for msg in messages if msg["role"] == "user"]
 
@@ -112,3 +103,32 @@ def complete_chat(messages: list[dict[str, str]] = None) -> dict[str, str]:
         messages.append(tool_msg)
     final_result = llm_with_tools.invoke(messages)
     return {"role": "assistant", "content": final_result.content}
+
+
+def generate_conversation_title(messages: list[dict[str, str]]) -> str:
+    # Filter to only include user and assistant messages, limited to first few exchanges
+    relevant_messages = [msg for msg in messages[:4] if msg["role"] in ["user", "assistant"]]
+
+    # Create a conversation representation for the LLM
+    conversation_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in relevant_messages])
+
+    result = llm.invoke(
+        [
+            SystemMessage(
+                "You are a helpful assistant that creates concise, descriptive titles for conversations. "
+                "Create a brief title (5-8 words max) that captures the essence of this tarot reading conversation. "
+                "The title should be specific to the question or topic, not generic. "
+                "Don't use quotes or prefixes like 'Title:'. Just return the title text."
+            ),
+            HumanMessage(f"Here's the conversation:\n{conversation_text}"),
+        ]
+    )
+
+    # Clean up the title - remove quotes, limit length
+    title = result.content.strip("\"'").strip()
+
+    # Ensure reasonable length (max ~50 chars)
+    if len(title) > 50:
+        title = title[:47] + "..."
+
+    return title

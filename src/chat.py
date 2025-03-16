@@ -1,7 +1,7 @@
 import streamlit as st
 
 import globals as g
-from ai import complete_chat, is_conversation_about_subject
+from ai import complete_chat, generate_conversation_title, is_conversation_about_subject
 from data.conversation import Conversation
 from data.utils import db_connection
 
@@ -103,6 +103,7 @@ def display_chat_messages():
 def handle_user_input():
     """Handle user input and chatbot response."""
     conversation: Conversation = st.session_state.conversation
+    first_response = False
 
     if prompt := st.chat_input():
         # Save conversation if it's the first message
@@ -110,6 +111,7 @@ def handle_user_input():
             conversation = Conversation.new()
             st.session_state.conversation = conversation
             st.query_params[g.CONVERSATION_ID_QUERY_PARAM_KEY] = conversation.id
+            first_response = True
 
         # Append user message to session state and save to database
         conversation.add_message("user", prompt)
@@ -138,6 +140,16 @@ def handle_user_input():
         conversation.add_message(response["role"], response["content"])
         with st.chat_message(response["role"]):
             st.markdown(response["content"])
+
+        # Generate and update conversation title after first successful interaction
+        if first_response:
+            try:
+                new_title = generate_conversation_title(conversation.messages)
+                if new_title:
+                    conversation.update(title=new_title)
+            except Exception as e:
+                st.warning(f"Could not generate title: {e}")
+            st.rerun()
 
 
 def update_conversation_title(conversation: Conversation):
