@@ -152,15 +152,6 @@ def handle_user_input():
             st.rerun()
 
 
-def update_conversation_title(conversation: Conversation):
-    """Update the title of an existing conversation."""
-    new_title = st.text_input("New Conversation Title")
-    if st.button("Update Title"):
-        conversation.update(title=new_title)
-        st.success("Conversation title updated successfully!")
-        st.rerun()
-
-
 def page():
     if "database_initialized" not in st.session_state:
         init_db()
