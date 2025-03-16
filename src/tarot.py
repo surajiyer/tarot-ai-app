@@ -1,5 +1,7 @@
 import random
 
+from langchain_core.tools import tool
+
 MAJOR_ARCANA = [
     "The Fool (0)",
     "The Magician (I)",
@@ -96,16 +98,22 @@ SUIT_OF_CUPS = [
 ]
 
 
-def random_pick_tarot_cards(number_of_cards: int = 3, with_replacement=False) -> list[str]:
+@tool
+def random_pick_tarot_cards(number_of_cards: int = 3, with_replacement=False, reversed_allowed=False) -> list[str]:
     """
     Randomly pick tarot cards from the deck.
     Args:
         number_of_cards (int): Number of cards to pick. Defaults to 3.
         with_replacement (bool): Whether to sample with replacement. Defaults to False.
+        reversed_allowed (bool): Whether to allow reversed cards. Defaults to False.
     Returns:
         list[str]: List of tarot cards.
     """
     cards = MAJOR_ARCANA + SUIT_OF_WANDS + SUIT_OF_PENTACLES + SUIT_OF_SWORDS + SUIT_OF_CUPS
     if with_replacement:
-        return random.choices(cards, k=number_of_cards)
-    return random.sample(cards, number_of_cards)
+        cards = random.choices(cards, k=number_of_cards)
+    else:
+        cards = random.sample(cards, number_of_cards)
+    if reversed_allowed:
+        cards = [card + " (reversed)" if random.random() < 0.5 else card for card in cards]
+    return cards
