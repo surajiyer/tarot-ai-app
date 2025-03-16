@@ -45,6 +45,16 @@ def load_existing_conversation(conversation: Conversation):
     st.query_params[g.CONVERSATION_ID_QUERY_PARAM_KEY] = conversation.id
 
 
+def delete_conversation(conversation_id: str):
+    """Delete a conversation and all its messages."""
+    if Conversation.delete(conversation_id):
+        if st.session_state.conversation and st.session_state.conversation.id == conversation_id:
+            st.session_state.conversation = None
+            st.query_params.clear()
+    else:
+        st.error("Failed to delete conversation.")
+
+
 def display_conversations_sidebar():
     """Display previous conversations."""
     with st.sidebar:
@@ -58,14 +68,25 @@ def display_conversations_sidebar():
         st.write(len(conversations), "conversations found.")
         if not conversations:
             return
+
         for conversation in conversations:
-            st.button(
-                conversation.title,
-                key=conversation.id,
-                on_click=load_existing_conversation,
-                args=(conversation,),
-                use_container_width=True,
-            )
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.button(
+                    conversation.title,
+                    key=conversation.id,
+                    on_click=load_existing_conversation,
+                    args=(conversation,),
+                    use_container_width=True,
+                )
+            with col2:
+                st.button(
+                    "🗑️",
+                    key=f"delete_{conversation.id}",
+                    on_click=delete_conversation,
+                    args=(conversation.id,),
+                    help="Delete this conversation",
+                )
 
 
 def display_chat_messages():

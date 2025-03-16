@@ -56,9 +56,25 @@ class Conversation:
 
     @classmethod
     @db_connection
+    def delete(cls, conversation_id: str, conn=None) -> bool:
+        """Delete a conversation and all its messages from the database."""
+        c = conn.cursor()
+        try:
+            # First delete all messages associated with this conversation
+            c.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
+            # Then delete the conversation itself
+            c.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
+            return True
+        except Exception:
+            return False
+        finally:
+            c.close()
+
+    @classmethod
+    @db_connection
     def get_all(cls, conn=None) -> list["Conversation"]:
         c = conn.cursor()
-        c.execute("SELECT id, title FROM conversations")
+        c.execute("SELECT id, title FROM conversations ORDER BY updated_at DESC, created_at DESC")
         rows = c.fetchall()
         c.close()
         conversations = []
