@@ -1,7 +1,7 @@
 import streamlit as st
 
 import globals as g
-from ai import complete_chat, is_text_about_subject
+from ai import complete_chat, is_conversation_about_subject
 from data.conversation import Conversation
 from data.utils import db_connection
 
@@ -71,6 +71,8 @@ def display_conversations_sidebar():
 def display_chat_messages():
     """Display chat messages."""
     if not st.session_state.conversation:
+        with st.chat_message("assistant"):
+            st.markdown("What is your question? Let's see if spirits have the answers for us.")
         return
     for msg in st.session_state.conversation.messages:
         with st.chat_message(msg["role"]):
@@ -83,8 +85,10 @@ def handle_user_input():
 
     if prompt := st.chat_input():
         # Save conversation if it's the first message
-        if new_conversation := conversation is None:
+        if conversation is None:
             conversation = Conversation.new()
+            st.session_state.conversation = conversation
+            st.query_params[g.CONVERSATION_ID_QUERY_PARAM_KEY] = conversation.id
 
         # Append user message to session state and save to database
         conversation.add_message("user", prompt)
@@ -92,7 +96,7 @@ def handle_user_input():
             st.markdown(prompt)
 
         # Verify if the content is about a specific subject
-        if not is_text_about_subject(prompt, "tarot"):
+        if not is_conversation_about_subject(conversation.messages):
             content = "I'm sorry. I can only answer questions using Tarot."
             conversation.add_message("assistant", content)
             with st.chat_message("assistant"):
@@ -102,23 +106,17 @@ def handle_user_input():
         # Get response from the chatbot API
         try:
             response = complete_chat(messages=conversation.messages)
-            if not response:
-                st.stop()
-
-            # Append chatbot response to session state and save to database
-            conversation.add_message(response["role"], response["content"])
-            with st.chat_message(response["role"]):
-                st.markdown(response["content"])
-
         except Exception as e:
             st.error(f"An error occurred: {e}")
             st.stop()
-        finally:
-            # Update conversation ID in URL if it's a new conversation and rerun
-            if new_conversation:
-                st.session_state.conversation = conversation
-                st.query_params[g.CONVERSATION_ID_QUERY_PARAM_KEY] = conversation.id
-                st.rerun()
+
+        if not response:
+            st.stop()
+
+        # Append chatbot response to session state and save to database
+        conversation.add_message(response["role"], response["content"])
+        with st.chat_message(response["role"]):
+            st.markdown(response["content"])
 
 
 def update_conversation_title(conversation: Conversation):
