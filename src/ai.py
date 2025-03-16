@@ -6,19 +6,28 @@ load_dotenv()
 model = AzureChatOpenAI()
 
 
-def complete_chat(messages: list[dict[str, str]] = None) -> str:
+def is_text_about_subject(text: str, subject: str) -> bool:
+    result = model.invoke(
+        [
+            HumanMessage(text),
+            SystemMessage("Is this about " + subject + "? Just return one word, true or false in lowercase."),
+        ]
+    )
+    return "true" in result.content
+
+
+def complete_chat(messages: list[dict[str, str]] = None) -> dict[str, str]:
     messages = list(
         map(
             lambda m: (
-                HumanMessage(m["message"])
-                if m["user"] == "human"
-                else AIMessage(m["message"])
-                if m["user"] == "assistant"
-                else SystemMessage(m["message"])
+                HumanMessage(m["content"])
+                if m["role"] == "human"
+                else AIMessage(m["content"])
+                if m["role"] == "assistant"
+                else SystemMessage(m["content"])
             ),
             messages,
         )
     )
-    print(messages)
     result = model.invoke(messages)
-    return result.content
+    return {"role": "assistant", "content": result.content}
