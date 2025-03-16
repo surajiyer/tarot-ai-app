@@ -1,3 +1,8 @@
+.PHONY: install
+install:
+	uv sync && uv run pre-commit install
+
+
 .PHONY: run
 run:
-	streamlit run src/main.py
+	uv run streamlit run src/main.py
